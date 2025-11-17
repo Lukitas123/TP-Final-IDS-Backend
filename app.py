@@ -30,7 +30,7 @@ def index():
     except Exception as e:
         return jsonify({
             "status": "error",
-            "message": "Error inesperado",
+            "message": "Error inesperado al verificar conexión.",
             "error_details": str(e)
         }), 500
     finally:
@@ -60,12 +60,46 @@ def get_rooms():
     except Exception as err:
         return jsonify({ 
             "status": "error",
-            "message": "Error al obtener datos de la tabla 'room'",
+            "message": "Error inesperado al obtener datos de la tabla 'room'",
             "error_details": str(err)
         }), 500
     finally:
         if conn:
             conn.close()
+
+@app.route('/room_type', methods=['GET'])
+def get_room_types():
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        cur.execute('SELECT * FROM room_type ORDER BY id;')
+        
+        room_types_data = cur.fetchall()
+        
+        if not room_types_data:
+            return jsonify({
+                "status": "error",
+                "message": "La tabla 'room_type' está vacía o no existe."
+            }), 404
+        
+        cur.close()
+        return jsonify({
+            "status": "success",
+            "message": "Datos de tipos de habitación obtenidos con éxito.",
+            "data": room_types_data
+        }), 200
+    except Exception as err:
+        return jsonify({ 
+            "status": "error",
+            "message": "Error al obtener datos de la tabla 'room_type'",
+            "error_details": str(err)
+        }), 500
+    finally:
+        if conn:
+            conn.close()
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001, debug=True)
