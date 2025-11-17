@@ -27,6 +27,12 @@ def index():
         cur.execute('SELECT 1')
         cur.close()
         return jsonify({"status": "success", "message": "Back funcionando y conectado a la BDD"})
+    except Psycopg2Error as db_err:
+        return jsonify({
+            "status": "error",
+            "message": "Error de base de datos al verificar conexión.",
+            "error_details": str(db_err)
+        }), 500
     except Exception as e:
         return jsonify({
             "status": "error",
@@ -57,6 +63,12 @@ def get_rooms():
         print(f"Datos obtenidos de la tabla 'room':\n{rooms_data}")
         cur.close()
         return jsonify({"status": "success", "message": "Conexión a la BDD exitosa - Tabla Rooms accesible", "data": rooms_data}), 200
+    except Psycopg2Error as db_err:
+        return jsonify({ 
+            "status": "error",
+            "message": "Error de base de datos al obtener datos de la tabla 'room'",
+            "error_details": str(db_err)
+        }), 500
     except Exception as err:
         return jsonify({ 
             "status": "error",
@@ -90,10 +102,16 @@ def get_room_types():
             "message": "Datos de tipos de habitación obtenidos con éxito.",
             "data": room_types_data
         }), 200
+    except Psycopg2Error as db_err:
+        return jsonify({ 
+            "status": "error",
+            "message": "Error de base de datos al obtener datos de la tabla 'room_type'",
+            "error_details": str(db_err)
+        }), 500
     except Exception as err:
         return jsonify({ 
             "status": "error",
-            "message": "Error al obtener datos de la tabla 'room_type'",
+            "message": "Error inesperado al obtener datos de la tabla 'room_type'",
             "error_details": str(err)
         }), 500
     finally:
