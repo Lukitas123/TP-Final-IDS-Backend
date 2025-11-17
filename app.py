@@ -3,6 +3,7 @@ from flask import Flask, jsonify
 from dotenv import load_dotenv
 import psycopg2
 from psycopg2 import Error as Psycopg2Error
+from psycopg2.extras import RealDictCursor
 load_dotenv()
 
 app = Flask(__name__)
@@ -31,6 +32,36 @@ def index():
             "status": "error",
             "message": "Error inesperado",
             "error_details": str(e)
+        }), 500
+    finally:
+        if conn:
+            conn.close()
+            
+@app.route('/rooms', methods=['GET'])
+def get_rooms():
+    conn = None
+    try:
+        conn = get_db_connection()
+        # Usar RealDictCursor para obtener resultados como diccionarios, y no como tuplas, entonces sé a que columna pertenece cada valor.
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        cur.execute('SELECT * FROM room r ORDER BY r.id;')
+        
+        rooms_data = cur.fetchall()
+        if not rooms_data:
+            return jsonify({
+                "status": "error",
+                "message": "La tabla 'room' está vacía o no existe."
+            }), 404
+        
+        print(f"Datos obtenidos de la tabla 'room':\n{rooms_data}")
+        cur.close()
+        return jsonify({"status": "success", "message": "Conexión a la BDD exitosa - Tabla Rooms accesible", "data": rooms_data}), 200
+    except Exception as err:
+        return jsonify({ 
+            "status": "error",
+            "message": "Error al obtener datos de la tabla 'room'",
+            "error_details": str(err)
         }), 500
     finally:
         if conn:
