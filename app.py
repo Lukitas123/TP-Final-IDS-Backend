@@ -120,6 +120,12 @@ def get_room_types():
 
 @app.route('/availability', methods=['POST'])
 def get_availability():
+    """
+    Endpoint para obtener la disponibilidad de tipos de habitación en base a fechas de check-in y check-out.
+    Parámetros esperados en la query string:
+    - checkin: Fecha de check-in en formato 'YYYY-MM-DD'
+    - checkout: Fecha de check-out en formato 'YYYY-MM-DD'
+    """
     checkin_date = request.args.get('checkin')
     checkout_date = request.args.get('checkout')
     
@@ -134,7 +140,30 @@ def get_availability():
         conn = get_db_connection()
         cur = conn.cursor()
         
-        cur.execute('')
+        # Es una query compleja, que obtiene los tipos de habitación disponibles en base a las reservas ya existentes.
+        # La lógica es: Seleccionar todos los tipos de habitación asociados a habitaciones que no estén reservadas en el rango de fechas dado.
+        # Hay dos casos:
+        # 1) La fecha de mi salida es luego de la fecha de entrada de una reserva existente (existing_checkin < checkout_date)
+        # 2) La fecha de mi entrada es antes de la fecha de salida de una reserva existente (existing_checkout > checkin_date)
+        # Si ambos casos se cumplen, significa que hay un solapamiento y la habitación no está disponible.
+        # Por lo tanto, excluimos esas habitaciones de nuestra selección.
+        # Finalmente, agrupamos por tipo de habitación para evitar duplicados. 
+        # Se usa %s porque funciona como placeholder para psycopg2, evitando inyecciones SQL (Chequea el tipo de dato antes de construir la query).
+        query = """
+            SELECT rt.*
+            FROM room_type rt
+            INNER JOIN room rm
+            ON rt.id = rm.type_id
+            WHERE rm.id NOT IN (
+                SELECT re.room_id
+                FROM reservation re 
+                WHERE re.check_in_date < %s
+                AND re.check_out_date > %s
+            )
+            GROUP BY rt.id;
+        """
+        
+        cur.execute(query, vars=(checkout_date, checkin_date))
         availability_data = cur.fetchall()
 
         
