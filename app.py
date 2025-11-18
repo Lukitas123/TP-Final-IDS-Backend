@@ -118,6 +118,38 @@ def get_room_types():
         if conn:
             conn.close()
 
+@app.route('/availability', methods=['POST'])
+def get_availability():
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        cur.execute('')
+        availability_data = cur.fetchall()
+
+        
+        cur.close()
+        return jsonify({
+            "status": "success",
+            "message": "Datos de disponibilidad obtenidos con éxito.",
+            "data": availability_data
+        }), 200
+    except Psycopg2Error as db_err:
+        return jsonify({ 
+            "status": "error",
+            "message": "Error de base de datos al obtener datos de la tabla 'availability'",
+            "error_details": str(db_err)
+        }), 500        
+    except Exception as err:
+        return jsonify({ 
+            "status": "error",
+            "message": "Error inesperado al obtener datos de la tabla 'availability'",
+            "error_details": str(err)
+        }), 500
+    finally:
+        if conn:
+            conn.close()
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001, debug=True)
