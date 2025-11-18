@@ -239,3 +239,42 @@ def get_activities():
         if conn:
             conn.close()
 
+@app.route('/api/package', methods=['GET'])
+def get_packages():
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        cur.execute('SELECT * FROM package ORDER BY id;')
+        
+        activities_data = cur.fetchall()
+        
+        if not activities_data:
+            return jsonify({
+                "status": "error",
+                "message": "La tabla 'package' está vacía o no existe."
+            }), 404
+        
+        cur.close()
+        return jsonify({
+            "status": "success",
+            "message": "Datos de packs obtenidos con éxito.",
+            "data": activities_data
+        }), 200
+    
+    except Psycopg2Error as db_err:
+        return jsonify({ 
+            "status": "error",
+            "message": "Error de base de datos al obtener datos de la tabla 'package'",
+            "error_details": str(db_err)
+        }), 500
+    except Exception as err:
+        return jsonify({ 
+            "status": "error",
+            "message": "Error inesperado al obtener datos de la tabla 'package'",
+            "error_details": str(err)
+        }), 500
+    finally:
+        if conn:
+            conn.close()
