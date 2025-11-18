@@ -14,7 +14,8 @@ if not DATABASE_URL:
     raise ValueError("No se encontró la variable de entorno DATABASE_URL. Asegúrate de tener un archivo .env con ella.")
 
 def get_db_connection():
-    conn = psycopg2.connect(DATABASE_URL)
+    # Usar RealDictCursor para obtener resultados como diccionarios, y no como tuplas, entonces sé a que columna pertenece cada valor.
+    conn = psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
     return conn
 
 #Rutas de la Aplicación
@@ -48,8 +49,7 @@ def get_rooms():
     conn = None
     try:
         conn = get_db_connection()
-        # Usar RealDictCursor para obtener resultados como diccionarios, y no como tuplas, entonces sé a que columna pertenece cada valor.
-        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur = conn.cursor()
         
         cur.execute('SELECT * FROM room r ORDER BY r.id;')
         
@@ -84,7 +84,7 @@ def get_room_types():
     conn = None
     try:
         conn = get_db_connection()
-        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur = conn.cursor()
         
         cur.execute('SELECT * FROM room_type ORDER BY id;')
         
