@@ -118,6 +118,7 @@ def get_room_types():
         if conn:
             conn.close()
 
+<<<<<<< Updated upstream
 @app.route('/availability', methods=['POST'])
 def get_availability():
     """
@@ -173,16 +174,40 @@ def get_availability():
                 "data": []
             }), 404
 
+=======
+@app.route('/api/activity', methods=['GET'])
+def get_activities():
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        cur.execute('SELECT * FROM activity ORDER BY id;')
+        
+        activities_data = cur.fetchall()
+        
+        if not activities_data:
+            return jsonify({
+                "status": "error",
+                "message": "La tabla 'activity' está vacía o no existe."
+            }), 404
+>>>>>>> Stashed changes
         
         cur.close()
         return jsonify({
             "status": "success",
+<<<<<<< Updated upstream
             "message": "Datos de disponibilidad obtenidos con éxito.",
             "data": availability_data
+=======
+            "message": "Datos de actividades obtenidos con éxito.",
+            "data": activities_data
+>>>>>>> Stashed changes
         }), 200
     except Psycopg2Error as db_err:
         return jsonify({ 
             "status": "error",
+<<<<<<< Updated upstream
             "message": "Error de base de datos al obtener datos de la tabla 'availability'",
             "error_details": str(db_err)
         }), 500        
@@ -190,11 +215,24 @@ def get_availability():
         return jsonify({ 
             "status": "error",
             "message": "Error inesperado al obtener datos de la tabla 'availability'",
+=======
+            "message": "Error de base de datos al obtener datos de la tabla 'activity'",
+            "error_details": str(db_err)
+        }), 500
+    except Exception as err:
+        return jsonify({ 
+            "status": "error",
+            "message": "Error inesperado al obtener datos de la tabla 'activity'",
+>>>>>>> Stashed changes
             "error_details": str(err)
         }), 500
     finally:
         if conn:
             conn.close()
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001, debug=True)
