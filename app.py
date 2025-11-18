@@ -169,7 +169,7 @@ def get_availability():
         if not availability_data:
             return jsonify({
                 "status": "error",
-                "message": "No hay habitaciones disponibles para las fechas proporcionadas."
+                "message": "No hay habitaciones disponibles para las fechas proporcionadas.",
                 "data": []
             }), 404
 
@@ -198,3 +198,44 @@ def get_availability():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001, debug=True)
+
+@app.route('/api/activity', methods=['GET'])
+def get_activities():
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        cur.execute('SELECT * FROM activity ORDER BY id;')
+        
+        activities_data = cur.fetchall()
+        
+        if not activities_data:
+            return jsonify({
+                "status": "error",
+                "message": "La tabla 'activity' está vacía o no existe."
+            }), 404
+        
+        cur.close()
+        return jsonify({
+            "status": "success",
+            "message": "Datos de actividades obtenidos con éxito.",
+            "data": activities_data
+        }), 200
+    
+    except Psycopg2Error as db_err:
+        return jsonify({ 
+            "status": "error",
+            "message": "Error de base de datos al obtener datos de la tabla 'activity'",
+            "error_details": str(db_err)
+        }), 500
+    except Exception as err:
+        return jsonify({ 
+            "status": "error",
+            "message": "Error inesperado al obtener datos de la tabla 'activity'",
+            "error_details": str(err)
+        }), 500
+    finally:
+        if conn:
+            conn.close()
+
