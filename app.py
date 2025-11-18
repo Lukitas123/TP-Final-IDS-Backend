@@ -165,6 +165,13 @@ def get_availability():
         
         cur.execute(query, vars=(checkout_date, checkin_date))
         availability_data = cur.fetchall()
+        
+        if not availability_data:
+            return jsonify({
+                "status": "error",
+                "message": "No hay habitaciones disponibles para las fechas proporcionadas."
+                "data": []
+            }), 404
 
         
         cur.close()
