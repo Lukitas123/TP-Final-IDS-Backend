@@ -44,7 +44,7 @@ def index():
         if conn:
             conn.close()
             
-@app.route('/room', methods=['GET'])
+@app.route('/rooms', methods=['GET'])
 def get_rooms():
     conn = None
     try:
@@ -79,7 +79,7 @@ def get_rooms():
         if conn:
             conn.close()
 
-@app.route('/room_type', methods=['GET'])
+@app.route('/room_types', methods=['GET'])
 def get_room_types():
     conn = None
     try:
@@ -196,7 +196,7 @@ def get_availability():
         if conn:
             conn.close()
 
-@app.route('/activity', methods=['GET'])
+@app.route('/activities', methods=['GET'])
 def get_activities():
     conn = None
     try:
@@ -236,7 +236,7 @@ def get_activities():
         if conn:
             conn.close()
 
-@app.route('/package', methods=['GET'])
+@app.route('/packages', methods=['GET'])
 def get_packages():
     conn = None
     try:
