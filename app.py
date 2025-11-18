@@ -44,7 +44,7 @@ def index():
         if conn:
             conn.close()
             
-@app.route('/rooms', methods=['GET'])
+@app.route('/room', methods=['GET'])
 def get_rooms():
     conn = None
     try:
@@ -118,8 +118,7 @@ def get_room_types():
         if conn:
             conn.close()
 
-<<<<<<< Updated upstream
-@app.route('/availability', methods=['POST'])
+@app.route('/availability', methods=['GET'])
 def get_availability():
     """
     Endpoint para obtener la disponibilidad de tipos de habitación en base a fechas de check-in y check-out.
@@ -174,40 +173,16 @@ def get_availability():
                 "data": []
             }), 404
 
-=======
-@app.route('/api/activity', methods=['GET'])
-def get_activities():
-    conn = None
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor(cursor_factory=RealDictCursor)
-        
-        cur.execute('SELECT * FROM activity ORDER BY id;')
-        
-        activities_data = cur.fetchall()
-        
-        if not activities_data:
-            return jsonify({
-                "status": "error",
-                "message": "La tabla 'activity' está vacía o no existe."
-            }), 404
->>>>>>> Stashed changes
         
         cur.close()
         return jsonify({
             "status": "success",
-<<<<<<< Updated upstream
             "message": "Datos de disponibilidad obtenidos con éxito.",
             "data": availability_data
-=======
-            "message": "Datos de actividades obtenidos con éxito.",
-            "data": activities_data
->>>>>>> Stashed changes
         }), 200
     except Psycopg2Error as db_err:
         return jsonify({ 
             "status": "error",
-<<<<<<< Updated upstream
             "message": "Error de base de datos al obtener datos de la tabla 'availability'",
             "error_details": str(db_err)
         }), 500        
@@ -215,34 +190,18 @@ def get_activities():
         return jsonify({ 
             "status": "error",
             "message": "Error inesperado al obtener datos de la tabla 'availability'",
-=======
-            "message": "Error de base de datos al obtener datos de la tabla 'activity'",
-            "error_details": str(db_err)
-        }), 500
-    except Exception as err:
-        return jsonify({ 
-            "status": "error",
-            "message": "Error inesperado al obtener datos de la tabla 'activity'",
->>>>>>> Stashed changes
             "error_details": str(err)
         }), 500
     finally:
         if conn:
             conn.close()
-<<<<<<< Updated upstream
-=======
 
->>>>>>> Stashed changes
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5001, debug=True)
-
-@app.route('/api/activity', methods=['GET'])
+@app.route('/activity', methods=['GET'])
 def get_activities():
     conn = None
     try:
         conn = get_db_connection()
-        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur = conn.cursor()
         
         cur.execute('SELECT * FROM activity ORDER BY id;')
         
@@ -277,12 +236,12 @@ def get_activities():
         if conn:
             conn.close()
 
-@app.route('/api/package', methods=['GET'])
+@app.route('/package', methods=['GET'])
 def get_packages():
     conn = None
     try:
         conn = get_db_connection()
-        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur = conn.cursor()
         
         cur.execute('SELECT * FROM package ORDER BY id;')
         
@@ -316,3 +275,8 @@ def get_packages():
     finally:
         if conn:
             conn.close()
+
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5001, debug=True)
+
