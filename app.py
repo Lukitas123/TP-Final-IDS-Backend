@@ -1,5 +1,5 @@
 import os
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from dotenv import load_dotenv
 import psycopg2
 from psycopg2 import Error as Psycopg2Error
@@ -120,6 +120,15 @@ def get_room_types():
 
 @app.route('/availability', methods=['POST'])
 def get_availability():
+    checkin_date = request.args.get('checkin')
+    checkout_date = request.args.get('checkout')
+    
+    if not checkin_date or not checkout_date:
+        return jsonify({
+            "status": "error",
+            "message": 'Faltan parámetros obligatorios ''checkin'' o ''checkout'' (I`m a teapot).'
+        }), 418
+    
     conn = None
     try:
         conn = get_db_connection()
