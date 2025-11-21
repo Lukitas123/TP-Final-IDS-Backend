@@ -196,9 +196,6 @@ def get_availability():
         if conn:
             conn.close()
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5001, debug=True)
-
 @app.route('/api/activity', methods=['GET'])
 def get_activities():
     conn = None
@@ -233,6 +230,46 @@ def get_activities():
         return jsonify({ 
             "status": "error",
             "message": "Error inesperado al obtener datos de la tabla 'activity'",
+            "error_details": str(err)
+        }), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/api/services', methods=['GET'])
+def get_services():
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        cur.execute('SELECT * FROM service ORDER BY id;')
+        
+        services_data = cur.fetchall()
+        
+        if not services_data:
+            return jsonify({
+                "status": "error",
+                "message": "La tabla 'service' está vacía o no existe."
+            }), 404
+        
+        cur.close()
+        return jsonify({
+            "status": "success",
+            "message": "Datos de servicios obtenidos con éxito.",
+            "data": services_data
+        }), 200
+    
+    except Psycopg2Error as db_err:
+        return jsonify({
+            "status": "error",
+            "message": "Error de base de datos al obtener datos de la tabla 'service'",
+            "error_details": str(db_err)
+        }), 500
+    except Exception as err:
+        return jsonify({
+            "status": "error",
+            "message": "Error inesperado al obtener datos de la tabla 'service'",
             "error_details": str(err)
         }), 500
     finally:
@@ -278,3 +315,7 @@ def get_packages():
     finally:
         if conn:
             conn.close()
+
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5001, debug=True)
