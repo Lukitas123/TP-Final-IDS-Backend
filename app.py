@@ -174,7 +174,7 @@ def get_availability():
         "data": availability_data
     }), 200
 
-@app.route('/api/activity', methods=['GET'])
+@app.route('/activity', methods=['GET'])
 def get_activities():
     conn = None
     activities_data = None
@@ -211,7 +211,7 @@ def get_activities():
         "data": activities_data
     }), 200
 
-@app.route('/api/services', methods=['GET'])
+@app.route('/services', methods=['GET'])
 def get_services():
     conn = None
     services_data = None
@@ -248,7 +248,7 @@ def get_services():
         "data": services_data
     }), 200
 
-@app.route('/api/package', methods=['GET'])
+@app.route('/package', methods=['GET'])
 def get_packages():
     conn = None
     packages_data = None
