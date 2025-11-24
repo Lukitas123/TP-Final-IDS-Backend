@@ -4,6 +4,8 @@ from dotenv import load_dotenv
 import psycopg2
 from psycopg2 import Error as Psycopg2Error
 from psycopg2.extras import RealDictCursor
+from datetime import datetime, timedelta
+
 load_dotenv()
 
 app = Flask(__name__)
@@ -174,7 +176,7 @@ def get_availability():
         "data": availability_data
     }), 200
 
-@app.route('/api/activity', methods=['GET'])
+@app.route('/activity', methods=['GET'])
 def get_activities():
     conn = None
     activities_data = None
@@ -211,7 +213,7 @@ def get_activities():
         "data": activities_data
     }), 200
 
-@app.route('/api/services', methods=['GET'])
+@app.route('/services', methods=['GET'])
 def get_services():
     conn = None
     services_data = None
@@ -248,7 +250,7 @@ def get_services():
         "data": services_data
     }), 200
 
-@app.route('/api/package', methods=['GET'])
+@app.route('/package', methods=['GET'])
 def get_packages():
     conn = None
     packages_data = None
@@ -284,6 +286,101 @@ def get_packages():
         "message": "Datos de packs obtenidos con éxito.",
         "data": packages_data
     }), 200
+
+def _calculate_reservation_amount(cur, room_id, checkin_date_str, checkout_date_str, activity_ids, service_ids):
+    checkin_date_obj = datetime.strptime(checkin_date_str, '%Y-%m-%d')
+    checkout_date_obj = datetime.strptime(checkout_date_str, '%Y-%m-%d')
+    nights = (checkout_date_obj - checkin_date_obj).days
+    if nights <= 0:
+        raise ValueError("La fecha de check-out debe ser posterior a la de check-in.")
+
+    # Obtener precio por noche de la habitación
+    query_room_price = "SELECT price_per_night FROM room WHERE id = " + str(room_id) + ";"
+    cur.execute(query_room_price)
+    room_price_per_night = cur.fetchone()['price_per_night']
+
+    total_amount = nights * room_price_per_night
+
+    # Sumar precios de actividades
+    if activity_ids:
+        activity_ids_str = ",".join(map(str, activity_ids))
+        query_activity_price = "SELECT COALESCE(SUM(price), 0) as sum FROM activity WHERE id IN (" + activity_ids_str + ");"
+        cur.execute(query_activity_price)
+        total_amount += cur.fetchone()['sum']
+    
+    # Sumar precios de servicios
+    if service_ids:
+        service_ids_str = ",".join(map(str, service_ids))
+        query_service_price = "SELECT COALESCE(SUM(price), 0) as sum FROM service WHERE id IN (" + service_ids_str + ");"
+        cur.execute(query_service_price)
+        total_amount += cur.fetchone()['sum']
+
+    return total_amount
+
+@app.route('/reservations', methods=['POST'])
+def create_reservation():
+    data = request.get_json()
+    if not data:
+        return jsonify({"status": "error", "message": "No se recibió ningún dato."}), 400
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            package_id = data.get('package_id')
+            room_type_id = data.get('room_type_id')
+            checkin_date_str = data.get('checkin_date')
+            checkout_date_str = data.get('checkout_date')
+            
+            customer_name = data.get('customer_name', '')
+            customer_email = data.get('customer_email', '')
+            
+            activity_ids = data.get('activity_ids', [])
+            service_ids = data.get('service_ids', [])
+            
+            if not room_type_id:
+                 return jsonify({"status": "error", "message": "Se requiere 'room_type_id' para la reserva."}), 400
+            if not all([checkin_date_str, checkout_date_str, customer_name, customer_email]):
+                 return jsonify({"status": "error", "message": "Faltan datos obligatorios de la reserva (fechas, nombre, email)."}), 400
+
+            #Búsqueda de Habitación SÚPER SIMPLE
+            query_room_search = "SELECT id, price_per_night FROM room WHERE type_id = " + str(room_type_id) + " LIMIT 1;"
+            cur.execute(query_room_search)
+            room_to_book = cur.fetchone()
+
+            if not room_to_book:
+                return jsonify({"status": "error", "message": "No existen habitaciones del tipo solicitado."}), 404
+            
+            room_id = room_to_book['id']
+
+            #Cálculo del Monto Total
+            total_amount = _calculate_reservation_amount(
+                cur, room_id, checkin_date_str, checkout_date_str, activity_ids, service_ids
+            )
+
+            #INSERCIÓN EN BASE DE DATOS
+            package_id_sql = 'NULL' if package_id is None else str(package_id)
+            
+            insert_query_reservation = "INSERT INTO reservation (room_id, package_id, check_in_date, check_out_date, adults, children, amount, customer_name, customer_email) VALUES (" \
+                                        + str(room_id) + ", " + package_id_sql + ", '" + checkin_date_str + "', '" + checkout_date_str + "', " \
+                                        + ", " + str(total_amount) + ", '" + customer_name + "', '" + customer_email + "') RETURNING id;"
+            cur.execute(insert_query_reservation)
+            reservation_id = cur.fetchone()['id']
+
+            for activity_id in activity_ids:
+                cur.execute("INSERT INTO reservation_activity (reservation_id, activity_id) VALUES (" + str(reservation_id) + ", " + str(activity_id) + ");")
+            for service_id in service_ids:
+                cur.execute("INSERT INTO reservation_service (reservation_id, service_id) VALUES (" + str(reservation_id) + ", " + str(service_id) + ");")
+
+            return jsonify({"status": "success", "message": "Reserva creada con éxito (método INSEGURO con concatenación).", "reservation_id": reservation_id}), 201
+
+    except ValueError as ve:
+        return jsonify({"status": "error", "message": str(ve)}), 400
+    except Exception as err:
+        return jsonify({"status": "error", "message": "Error inesperado.", "error_details": str(err)}), 500
+    finally:
+        if conn:
+            conn.close()
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001, debug=True)
