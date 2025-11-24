@@ -361,9 +361,9 @@ def create_reservation():
             #INSERCIÓN EN BASE DE DATOS
             package_id_sql = 'NULL' if package_id is None else str(package_id)
             
-            insert_query_reservation = "INSERT INTO reservation (room_id, package_id, check_in_date, check_out_date, adults, children, amount, customer_name, customer_email) VALUES (" \
+            insert_query_reservation = "INSERT INTO reservation (room_id, package_id, check_in_date, check_out_date, amount, customer_name, customer_email) VALUES (" \
                                         + str(room_id) + ", " + package_id_sql + ", '" + checkin_date_str + "', '" + checkout_date_str + "', " \
-                                        + ", " + str(total_amount) + ", '" + customer_name + "', '" + customer_email + "') RETURNING id;"
+                                        + str(total_amount) + ", '" + customer_name + "', '" + customer_email + "') RETURNING id;"
             cur.execute(insert_query_reservation)
             reservation_id = cur.fetchone()['id']
 
