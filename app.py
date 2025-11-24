@@ -287,6 +287,53 @@ def get_packages():
         "data": packages_data
     }), 200
 
+# Endpoint de Búsqueda Unificada
+@app.route('/api/search', methods=['GET'])
+def search():
+    query_param = request.args.get('q', '')
+    if not query_param:
+        return jsonify({"status": "success", "data": []}), 200
+
+    conn = None
+    search_results = []
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            # Usamos ILIKE para búsqueda case-insensitive y % para matching parcial
+            search_term = f"%{query_param}%"
+            
+            # Unificamos las búsquedas en una sola consulta SQL para eficiencia
+            sql_query = """
+                SELECT id, name, 'habitaciones' as type FROM room_type WHERE name ILIKE %s
+                UNION ALL
+                SELECT id, name, 'servicios' as type FROM service WHERE name ILIKE %s
+                UNION ALL
+                SELECT id, name, 'actividades' as type FROM activity WHERE name ILIKE %s
+                UNION ALL
+                SELECT id, name, 'paquetes' as type FROM package WHERE name ILIKE %s;
+            """
+            
+            cur.execute(sql_query, (search_term, search_term, search_term, search_term))
+            search_results = cur.fetchall()
+            
+    except Psycopg2Error as db_err:
+        return jsonify({
+            "status": "error",
+            "message": "Error de base de datos durante la búsqueda.",
+            "error_details": str(db_err)
+        }), 500
+    except Exception as err:
+        return jsonify({
+            "status": "error",
+            "message": "Error inesperado durante la búsqueda.",
+            "error_details": str(err)
+        }), 500
+    finally:
+        if conn:
+            conn.close()
+
+    return jsonify({"status": "success", "data": search_results}), 200
+
 def _calculate_reservation_amount(cur, room_id, checkin_date_str, checkout_date_str, activity_ids, service_ids):
     checkin_date_obj = datetime.strptime(checkin_date_str, '%Y-%m-%d')
     checkout_date_obj = datetime.strptime(checkout_date_str, '%Y-%m-%d')
