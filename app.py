@@ -372,7 +372,7 @@ def create_reservation():
             for service_id in service_ids:
                 cur.execute("INSERT INTO reservation_service (reservation_id, service_id) VALUES (" + str(reservation_id) + ", " + str(service_id) + ");")
 
-            return jsonify({"status": "success", "message": "Reserva creada con éxito (método INSEGURO con concatenación).", "reservation_id": reservation_id}), 201
+            return jsonify({"status": "success", "message": "Reserva creada con éxito", "reservation_id": reservation_id}), 201
 
     except ValueError as ve:
         return jsonify({"status": "error", "message": str(ve)}), 400
