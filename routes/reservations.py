@@ -15,8 +15,9 @@ def _find_available_room(cur, room_type_id, checkin, checkout):
         FROM room r
         WHERE r.type_id = {room_type_id}
         AND r.id NOT IN (
-            SELECT re.room_id
-            FROM reservation re
+            SELECT rr.room_id
+            FROM reservation_room rr
+            JOIN reservation re ON re.id = rr.reservation_id
             WHERE re.check_in_date < '{checkout}'
             AND re.check_out_date > '{checkin}'
         )
@@ -82,17 +83,19 @@ def create_reservation():
 
             room_id = _find_available_room(cur, room_type_id, checkin, checkout)
             total_amount = _calculate_reservation_amount(cur, room_id, checkin, checkout, activity_ids, service_ids)
-            package_sql = 'NULL' if package_id is None else str(package_id)
+            package_sql = 'NULL' if package_id is None else int(package_id)
             cur.execute(
-                f"INSERT INTO reservation (room_id, package_id, check_in_date, check_out_date, adults, children, amount, customer_name, customer_email) "
-                f"VALUES ({room_id},{package_sql},'{checkin}','{checkout}',{adults},{children},{total_amount},'{customer_name}','{customer_email}') RETURNING id;"
+                f"INSERT INTO reservation (package_id, check_in_date, check_out_date, adults, children, amount, customer_name, customer_email) "
+                f"VALUES ({package_sql},'{checkin}','{checkout}',{adults},{children},{total_amount},'{customer_name}','{customer_email}') RETURNING id;"
             )
             reservation_id = cur.fetchone()['id']
             for aid in activity_ids:
                 cur.execute(f"INSERT INTO reservation_activity (reservation_id, activity_id) VALUES ({reservation_id},{aid});")
             for sid in service_ids:
                 cur.execute(f"INSERT INTO reservation_service (reservation_id, service_id) VALUES ({reservation_id},{sid});")
-            return jsonify({"status":"success","message":"Reserva creada","reservation_id": reservation_id}), 201
+            cur.execute(f"INSERT INTO reservation_room (reservation_id, room_id) VALUES ({reservation_id},{room_id});")
+            conn.commit()
+            return jsonify({"status":"success","message":"Reserva creada","reservation_id": reservation_id, "room_id": room_id }), 201
     except ValueError as ve:
         return jsonify({"status":"error","message": str(ve)}), 400
     finally:
