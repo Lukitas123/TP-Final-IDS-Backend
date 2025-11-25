@@ -64,16 +64,29 @@ def create_reservation():
             checkout = data.get('checkout_date')
             customer_name = data.get('customer_name', '')
             customer_email = data.get('customer_email', '')
+            adults = data.get('adults')
+            children = data.get('children', 0)
             activity_ids = data.get('activity_ids', [])
             service_ids = data.get('service_ids', [])
             package_id = data.get('package_id')
 
             if not room_type_id or not all([checkin,checkout,customer_name,customer_email]):
                 return jsonify({"status":"error","message":"Faltan datos obligatorios"}), 400
+            try:
+                adults = int(adults)
+                children = int(children)
+            except (TypeError, ValueError):
+                return jsonify({"status":"error","message":"Cantidad de pasajeros inválida"}), 400
+            if adults < 1 or children < 0:
+                return jsonify({"status":"error","message":"Cantidad de pasajeros inválida"}), 400
+
             room_id = _find_available_room(cur, room_type_id, checkin, checkout)
             total_amount = _calculate_reservation_amount(cur, room_id, checkin, checkout, activity_ids, service_ids)
             package_sql = 'NULL' if package_id is None else str(package_id)
-            cur.execute(f"INSERT INTO reservation (room_id, package_id, check_in_date, check_out_date, amount, customer_name, customer_email) VALUES ({room_id},{package_sql},'{checkin}','{checkout}',{total_amount},'{customer_name}','{customer_email}') RETURNING id;")
+            cur.execute(
+                f"INSERT INTO reservation (room_id, package_id, check_in_date, check_out_date, adults, children, amount, customer_name, customer_email) "
+                f"VALUES ({room_id},{package_sql},'{checkin}','{checkout}',{adults},{children},{total_amount},'{customer_name}','{customer_email}') RETURNING id;"
+            )
             reservation_id = cur.fetchone()['id']
             for aid in activity_ids:
                 cur.execute(f"INSERT INTO reservation_activity (reservation_id, activity_id) VALUES ({reservation_id},{aid});")
