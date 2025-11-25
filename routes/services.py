@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from database import get_db_connection
+from psycopg2 import Error as Psycopg2Error
 
 services_bp = Blueprint('services_bp', __name__)
 
@@ -45,6 +46,8 @@ def get_services():
                     return jsonify({"status":"error","message":"Tabla 'service' vacía o no existe"}), 404
                 else:
                     return jsonify({"status":"success","message":"Datos de servicios obtenidos","data": data}), 200
+    except Psycopg2Error as db_err:
+        return jsonify({"status":"error","message":"Error DB al obtener services","error_details": str(db_err)}), 500
     finally:
         if conn:
             conn.close()
