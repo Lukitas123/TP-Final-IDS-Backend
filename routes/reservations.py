@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 from database import get_db_connection
-from datetime import datetime, timedelta # Added timedelta
+from datetime import datetime, timedelta
 
 reservations_bp = Blueprint('reservations_bp', __name__)
 
@@ -131,7 +131,7 @@ def create_reservation():
                 return jsonify({"status":"success","message":"Reserva de paquete creada","reservation_id": reservation_id, "room_id": room_id }), 201
 
             else:
-                # --- FLUJO DE RESERVA PERSONALIZADA (EXISTENTE) ---
+                # --- FLUJO DE RESERVA PERSONALIZADA  ---
                 room_type_id = data.get('room_type_id')
                 checkin = data.get('checkin_date')
                 checkout = data.get('checkout_date')
@@ -141,15 +141,6 @@ def create_reservation():
                 if not room_type_id or not all([checkin,checkout,customer_name,customer_email]):
                     return jsonify({"status":"error","message":"Faltan datos obligatorios para la reserva personalizada"}), 400
                 
-                # Estas validaciones de pasajeros ya se hicieron al inicio, se pueden quitar de aquí
-                # try:
-                #     adults = int(adults)
-                #     children = int(children)
-                # except (TypeError, ValueError):
-                #     return jsonify({"status":"error","message":"Cantidad de pasajeros inválida"}), 400
-                # if adults < 1 or children < 0:
-                #     return jsonify({"status":"error","message":"Cantidad de pasajeros inválida"}), 400
-
                 room_id = find_available_room(cur, room_type_id, checkin, checkout)
                 total_amount = calculate_reservation_amount(cur, room_id, checkin, checkout, activity_ids, service_ids)
                 
