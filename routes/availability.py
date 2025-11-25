@@ -21,8 +21,9 @@ def get_availability():
                 INNER JOIN room rm
                 ON rt.id = rm.type_id
                 WHERE rm.id NOT IN (
-                    SELECT re.room_id
-                    FROM reservation re 
+                    SELECT rr.room_id
+                    FROM reservation_room rr
+                    JOIN reservation re ON re.id = rr.reservation_id
                     WHERE re.check_in_date < %s
                     AND re.check_out_date > %s
                 )
