@@ -4,7 +4,36 @@ from datetime import datetime
 
 reservations_bp = Blueprint('reservations_bp', __name__)
 
+
+def _find_available_room(cur, room_type_id, checkin, checkout):
+    """
+    Busca rápidamente una habitación del tipo pedido que no tenga reservas
+    que se solapen con las fechas seleccionadas.
+    """
+    query = f"""
+        SELECT r.id
+        FROM room r
+        WHERE r.type_id = {room_type_id}
+        AND r.id NOT IN (
+            SELECT re.room_id
+            FROM reservation re
+            WHERE re.check_in_date < '{checkout}'
+            AND re.check_out_date > '{checkin}'
+        )
+        ORDER BY r.id
+        LIMIT 1;
+    """
+    cur.execute(query)
+    room = cur.fetchone()
+    if not room:
+        raise ValueError("No quedan habitaciones disponibles de ese tipo para esas fechas")
+    return room['id']
+
+
 def _calculate_reservation_amount(cur, room_id, checkin, checkout, activity_ids, service_ids):
+    """
+    Suma noches * tarifa + precios de las actividades/servicios seleccionados.
+    """
     checkin_date = datetime.strptime(checkin, '%Y-%m-%d')
     checkout_date = datetime.strptime(checkout, '%Y-%m-%d')
     nights = (checkout_date - checkin_date).days
@@ -41,11 +70,7 @@ def create_reservation():
 
             if not room_type_id or not all([checkin,checkout,customer_name,customer_email]):
                 return jsonify({"status":"error","message":"Faltan datos obligatorios"}), 400
-            cur.execute(f"SELECT id FROM room WHERE type_id={room_type_id} LIMIT 1;")
-            room = cur.fetchone()
-            if not room:
-                return jsonify({"status":"error","message":"No hay habitaciones de ese tipo"}), 404
-            room_id = room['id']
+            room_id = _find_available_room(cur, room_type_id, checkin, checkout)
             total_amount = _calculate_reservation_amount(cur, room_id, checkin, checkout, activity_ids, service_ids)
             package_sql = 'NULL' if package_id is None else str(package_id)
             cur.execute(f"INSERT INTO reservation (room_id, package_id, check_in_date, check_out_date, amount, customer_name, customer_email) VALUES ({room_id},{package_sql},'{checkin}','{checkout}',{total_amount},'{customer_name}','{customer_email}') RETURNING id;")
