@@ -1,0 +1,442 @@
+#swagger-ui clon de carpeta dist descargada desde https://github.com/swagger-api/swagger-ui
+openapi: 3.0.3
+info:
+  title: Hotel Bugbusters API
+  version: 1.0.0
+  description: API del backend del Hotel Bugbusters (rooms, room_types, servicios, actividades, paquetes y reservas).
+
+servers:
+  - url: http://localhost:5001   
+    description: Host local
+
+paths:
+  /:
+    get:
+      summary: Healthcheck del backend
+      description: Verifica que el backend esté funcionando y conectado a la BDD.
+      tags: [Home]
+      responses:
+        '200':
+          description: Backend OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicResponse'
+        '500':
+          description: Error de conexión o inesperado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /rooms:
+    get:
+      summary: Listar habitaciones
+      tags: [Rooms]
+      responses:
+        '200':
+          description: Lista de habitaciones
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoomsListResponse'
+        '404':
+          description: Tabla room vacía o no existe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Error DB al obtener rooms
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /room_types:
+    get:
+      summary: Listar tipos de habitación
+      tags: [Rooms]
+      responses:
+        '200':
+          description: Lista de tipos de habitación
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoomTypesListResponse'
+        '404':
+          description: Tabla room_type vacía o no existe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Error DB al obtener room_types
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /activity:
+    get:
+      summary: Listar actividades
+      tags: [Activities]
+      responses:
+        '200':
+          description: Lista de actividades
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActivitiesListResponse'
+        '404':
+          description: Tabla activity vacía o no existe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /services:
+    get:
+      summary: Listar servicios
+      tags: [Services]
+      responses:
+        '200':
+          description: Lista de servicios
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServicesListResponse'
+        '404':
+          description: Tabla service vacía o no existe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /package:
+    get:
+      summary: Listar paquetes
+      tags: [Packages]
+      responses:
+        '200':
+          description: Lista de paquetes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PackagesListResponse'
+        '404':
+          description: Tabla package vacía o no existe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /availability:
+    get:
+      summary: Obtener tipos de habitación disponibles entre dos fechas
+      tags: [Availability]
+      parameters:
+        - in: query
+          name: checkin
+          required: true
+          schema:
+            type: string
+            format: date
+          description: Fecha de check-in (YYYY-MM-DD)
+        - in: query
+          name: checkout
+          required: true
+          schema:
+            type: string
+            format: date
+          description: Fecha de check-out (YYYY-MM-DD)
+      responses:
+        '200':
+          description: Tipos de habitación disponibles
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoomTypesListResponse'
+        '404':
+          description: No hay habitaciones disponibles
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '418':
+          description: Faltan parámetros checkin o checkout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Error DB al obtener disponibilidad
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /reservations:
+    post:
+      summary: Crear una reserva
+      tags: [Reservations]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReservationRequest'
+      responses:
+        '201':
+          description: Reserva creada correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Reserva creada
+                  reservation_id:
+                    type: integer
+                    example: 42
+        '400':
+          description: Faltan datos obligatorios o fechas inválidas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No hay habitaciones del tipo solicitado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    BasicResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        message:
+          type: string
+          example: Back funcionando y conectado a la BDD
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: error
+        message:
+          type: string
+          example: Error DB al obtener rooms
+        error_details:
+          type: string
+          nullable: true
+
+    Room:
+      type: object
+      description: Registro de la tabla room
+      properties:
+        id:
+          type: integer
+        type_id:
+          type: integer
+        number:
+          type: string
+          nullable: true
+        price_per_night:
+          type: number
+          format: float
+
+    RoomType:
+      type: object
+      description: Registro de la tabla room_type
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        capacity:
+          type: integer
+          nullable: true
+        gallery:
+          type: string
+          nullable: true
+
+    Activity:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        price:
+          type: number
+          format: float
+        gallery:
+          type: string
+          nullable: true
+        schedule:
+          type: string
+          nullable: true
+
+    Service:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        price:
+          type: number
+          format: float
+        gallery:
+          type: string
+          nullable: true
+
+    Package:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        days:
+          type: integer
+          nullable: true
+        nights:
+          type: integer
+          nullable: true
+        price:
+          type: number
+          format: float
+        gallery:
+          type: string
+          nullable: true
+
+    ReservationRequest:
+      type: object
+      required:
+        - room_type_id
+        - checkin_date
+        - checkout_date
+        - customer_name
+        - customer_email
+      properties:
+        room_type_id:
+          type: integer
+          example: 1
+        checkin_date:
+          type: string
+          format: date
+          example: "2025-01-10"
+        checkout_date:
+          type: string
+          format: date
+          example: "2025-01-12"
+        customer_name:
+          type: string
+          example: "Juan Pérez"
+        customer_email:
+          type: string
+          format: email
+          example: "juan@example.com"
+        activity_ids:
+          type: array
+          items:
+            type: integer
+          example: [1, 2]
+        service_ids:
+          type: array
+          items:
+            type: integer
+          example: [1]
+        package_id:
+          type: integer
+          nullable: true
+          example: 3
+
+    RoomsListResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Room'
+
+    RoomTypesListResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/RoomType'
+
+    ActivitiesListResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Activity'
+
+    ServicesListResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Service'
+
+    PackagesListResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Package'
