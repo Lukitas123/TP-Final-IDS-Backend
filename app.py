@@ -1,9 +1,14 @@
 from flask import Flask
 from dotenv import load_dotenv
+from flask_cors import CORS
 
 
 load_dotenv()
 app = Flask(__name__)
+
+# Habilitar CORS para todas las rutas.
+# Esto permite que el frontend en el puerto 5000 le hable al backend en el 5001.
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 from routes.home import home_bp
 from routes.rooms import rooms_bp
